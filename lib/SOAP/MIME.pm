@@ -3,9 +3,14 @@
 #
 # Author: Byrne Reese <byrne@majordojo.com>
 #
+# TO DO:
+# * SOAP::Lite is incredibly inefficient in its use of memory. It passed
+#   most objects around by value, which inadvertently create copies of
+#   everything. SOAP::Lite needs to pass around references, especially
+#   when passing around things as potentially big as attachments.
 package SOAP::MIME;
 
-$VERSION=0.55-2;
+$VERSION=0.55-3;
 
 BEGIN {
 
@@ -14,9 +19,18 @@ BEGIN {
   # decoded attachments. I add this getter/setting for attachments, and
   # I will then call this in SOAP::Deserializer to populate the SOM object
   # with the decoded attachments (MIME::Entity's)
+  # DEPRECATED:
+  #   please use SOAP::SOM::parts
   sub SOAP::SOM::attachments {
     my $self = shift;
     @_ ? ($self->{_attachments} = shift, return $self) : return $self->{_attachments};
+  }
+
+  # This exposes any MIME::Entities that were parsed out of a MIME formatted
+  # response.
+  sub SOAP::SOM::parts {
+    my $self = shift;
+    @_ ? ($self->{_parts} = shift, return $self) : return $self->{_parts};
   }
 
   sub SOAP::Deserializer::deserialize {
@@ -30,15 +44,22 @@ BEGIN {
     # TBD: find better way to signal parsing errors
     # This is returning a parsed body, however, if the message was mime
     # formatted, then the self->ids hash should be populated with mime parts
+
+    # I think I am going to chunk this - and have the decode subroutine
+    # parse the MIME::Entity objects into SOAP::SOM parts.
     my $parsed = $self->decode($_[0]); # TBD: die on possible errors in Parser?
 
     $self->decode_object($parsed);
     my $som = SOAP::SOM->new($parsed);
 
+    if ($self->mimeparser->{'_parts'}) {
+      print "*********************ATTACHMENTS FOUND**************************\n";
+      $som->parts($self->mimeparser->{'_parts'});
+    }
+
     # if there are some IDs (from mime processing), then process others
     # otherwise delay till we first meet IDs
     if (keys %{$self->ids()}) {
-      $som->attachments($self->ids());
       $self->traverse_ids($parsed);
     } else {
       $self->ids($parsed);
@@ -46,6 +67,34 @@ BEGIN {
     return $som;
   }
 
+  sub SOAP::MIMEParser::DESTROY {
+    my $self = shift;
+    $self->{_parts} = undef;
+    $self->{_attachments} = undef;
+  }
+
+  sub SOAP::MIMEParser::decode {
+    my $self = shift;
+
+    my $entity = eval { $self->parse_data(shift) }
+      or die "Something wrong with MIME message: @{[$@ || $self->last_error]}\n";
+
+    $self->{_parts} = \$entity->parts;
+
+    my @result = ();
+    if ($entity->head->mime_type eq 'multipart/form-data') {
+      @result = $self->decode_form_data($entity);
+    } elsif ($entity->head->mime_type eq 'multipart/related') {
+      @result = $self->decode_related($entity);
+    } elsif ($entity->head->mime_type eq 'text/xml') {
+      @result = ();
+    } else {
+      die "Can't handle MIME messsage with specified type (@{[$entity->head->mime_type]})\n";
+    }
+    @result ? @result 
+      : $entity->bodyhandle->as_string ? [undef, '', undef, $entity->bodyhandle->as_string]
+	: die "No content in MIME message\n";
+  }
 
   # This exposes an accessor for setting and getting the MIME::Entities
   # that will be attached to the SOAP Envelope.
@@ -76,7 +125,6 @@ BEGIN {
 
       $top->attach(
 		   'Type'             => 'text/xml',
-#		   'Encoding'         => '8bit',
 		   'Content-Location' => '/main_envelope',
 		   'Content-ID'       => '<main_envelope>',
 		   'Data'             => $serializer->envelope(method => shift, @_),
@@ -285,7 +333,8 @@ SOAP::MIME - Patch to SOAP::Lite to add attachment support. This module allows
 Perl clients to both compose messages with attachments, and to parse messages
 with attachments.
 
-Currently the module does not support server side parsing of attachments.
+Currently the module does not support server side parsing of attachments... at
+least it has never been tested.
 
 =head1 SYNOPSIS
 
@@ -293,22 +342,30 @@ SOAP::Lite (http://www.soaplite.com/) is a SOAP Toolkit that
 allows users to create SOAP clients and services. As of
 July 15, 2002, MIME support in SOAP::Lite was minimal. It could
 parse MIME formatted messages, but the data contained in those
-attachments was "lost." This Perl module, patches SOAP::Lite so
-that those MIME attachments are stored and placed into
-a SOAP::SOM object.
+attachments was "lost."
 
-=head1 TODO
+This Perl module, patches SOAP::Lite so that users can not only send MIME
+formatted messages, but also gain access to those MIME attachments that are
+returned in a response.
+
+=head1 TODO/ChangeLog
 
 6/12/2002 - Need to add ability to compose and send attachments.
             FIXED on 7/15/2002
 7/15/2002 - Ability to process attachments on the server side has not yet
             been tested.
+7/26/2002 - Reworked the parsing of the response to return an array
+            of MIME::Entity objects which enables to user to more fully
+            utilize the functionality contained within that module
 
 =head1 REFERENCE
 
 =over 8
 
-=item B<attachments()>
+=item B<SOAP::SOM::attachments()>
+
+DEPRECATED - please use SOAP::SOM::parts instead which stores an
+array of MIME::Entity objects
 
 Used to retrieve attachments returned in a response. The
 subroutine attachments() returns a hash containing the attachments
@@ -319,7 +376,13 @@ the attachment itself:
 
 @(<content-type>,%HASH,<content>)
 
-=item B<parts(ARRAY)>
+=item B<SOAP::SOM::parts()>
+
+Used to retrieve MIME parts returned in a response. The
+subroutine parts() returns a I<reference> to an array of MIME::Entity
+objects parsed out of a message.
+
+=item B<SOAP::Lite::parts(ARRAY)>
 
 Used to specify an array of MIME::Entities. These entities will be
 attached to the SOAP message.
@@ -339,11 +402,8 @@ attached to the SOAP message.
 	->proxy($HOST);
   my $som = $soap->foo();
 
-  foreach my $cid (keys %{$som->attachments}) {
-    print "Attachment content-id: " . $cid . "\n";
-    foreach my $foo (@{$som->attachments->{$cid}}) {
-      print "  Array elem: $foo\n";
-    }
+  foreach my $part (${$som->parts}) {
+    print $part->stringify;
   }
 
 =head2 Sending an Attachment

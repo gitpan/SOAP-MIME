@@ -14,9 +14,6 @@ my $soap = SOAP::Lite
   ->proxy($HOST);
 my $som = $soap->foo();
 
-foreach my $cid (keys %{$som->attachments}) {
-  print "Attachment content-id: " . $cid . "\n";
-  foreach my $foo (@{$som->attachments->{$cid}}) {
-    print "  Array elem: $foo\n";
-  }
+foreach my $part (${$som->parts}) {
+  print $part->stringify;
 }
