@@ -1,4 +1,6 @@
 MANIFEST		This file
+CHANGE_LOG		A change history of the module
+INSTALL			Installation instructions
 README			Documentation
 Makefile.PL		The usual perl Makefile dot P-L
 lib/SOAP/MIME.pm	Main SOAP::MIME module

@@ -71,6 +71,8 @@ BEGIN {
     $self->{_parts} = undef;
   }
 
+  sub SOAP::MIMEParser::get_multipart_id { (shift || '') =~ /^<?(.+)>?$/; $1 || '' }
+
   sub SOAP::MIMEParser::generate_random_string
     {
       my ($self,$len) = @_;
@@ -418,7 +420,7 @@ sub SOAP::Serializer::envelope {
   $self->seen({}); # reinitialize multiref table
   my($encoded) = $self->encode_object(
     SOAP::Data->name(SOAP::Serializer::qualify($self->envprefix => 'Envelope') => \SOAP::Data->value(
-      ($header ? SOAP::Data->name(qualify($self->envprefix => 'Header') => \$header) : ()),
+      ($header ? SOAP::Data->name(SOAP::Serializer::qualify($self->envprefix => 'Header') => \$header) : ()),
       SOAP::Data->name(SOAP::Serializer::qualify($self->envprefix => 'Body')   => \$body)
     ))->attr($self->attr)
   );
@@ -602,9 +604,6 @@ SOAP::MIME - Patch to SOAP::Lite to add attachment support. This module allows
 Perl clients to both compose messages with attachments, and to parse messages
 with attachments.
 
-Currently the module does not support server side parsing of attachments... at
-least it has never been tested.
-
 =head1 SYNOPSIS
 
 SOAP::Lite (http://www.soaplite.com/) is a SOAP Toolkit that
@@ -626,24 +625,11 @@ returned in a response.
 7/26/2002 - Reworked the parsing of the response to return an array
             of MIME::Entity objects which enables to user to more fully
             utilize the functionality contained within that module
+3/18/2003 - Added server-side attachment support for HTTP
 
 =head1 REFERENCE
 
 =over 8
-
-=item B<SOAP::SOM::attachments()>
-
-DEPRECATED - please use SOAP::SOM::parts instead which stores an
-array of MIME::Entity objects
-
-Used to retrieve attachments returned in a response. The
-subroutine attachments() returns a hash containing the attachments
-parsed out of a message. The keys to the returned hash is the
-content-id of the associated attachment. The value of the hash is
-an array containing the content-type, the ???, and the content of
-the attachment itself:
-
-@(<content-type>,%HASH,<content>)
 
 =item B<SOAP::SOM::parts()>
 
@@ -694,6 +680,20 @@ attached to the SOAP message.
     ->parts([ $ent ])
     ->proxy($SOME_HOST)
     ->some_method(SOAP::Data->name("foo" => "bar"));
+
+=head2 Responding (server-side) with an Attachment
+
+  sub echo {
+    my $self = shift;
+    my $envelope = pop;
+    my $ent = build MIME::Entity
+	'Id'          => "<1234>",
+	'Type'        => "text/xml",
+	'Path'        => "examples/attachments/some2.xml",
+	'Filename'    => "some2.xml",
+	'Disposition' => "attachment";
+    return SOAP::Data->name("foo" => $STRING),$ent;
+  }
 
 =head1 SEE ALSO
 
