@@ -1,0 +1,4 @@
+MANIFEST
+Makefile.PL			The usual perl Makefile dot P-L
+README				Documentation
+lib/SOAP/MIME.pm		Main SOAP::MIME module
