@@ -5,3 +5,5 @@ lib/SOAP/MIME.pm	Main SOAP::MIME module
 t/use.t			A test to see if SOAP::MIME can be loaded
 examples/compose.pl	An example of composing a message with an attachment
 examples/retrieve.pl	An example of retrieving an attachment from a message
+examples/mult_att.pl	An example of sending multiple attachments
+examples/retrieve.pl	An example of a CGI server that receives and responds with multiple attachments

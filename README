@@ -1,6 +1,6 @@
 OVERVIEW
 
-This Version: 0.55-4
+This Version: 0.55-6
 
 SOAP::Lite (http://www.soaplite.com/) is a SOAP Toolkit
 that allows users to create SOAP clients and services. As
@@ -49,10 +49,11 @@ documentation from the module files directly.
 
 LIMITATIONS
 
-- Currently SOAP::MIME only provides a mechanism for composing and 
-  accessing attachments on the client side over HTTP. It does not expose
-  the ability to necessarily to process attachments on the server side
-  very easily. Although, I assume it is possible.
+- This implementation patches SOAP::Lite. But 'use'ing it, you completely
+  override functions found in SOAP::Lite. This may produce weird behavior
+  if you are not using attachments. What 'wierd' means, I don't know. But
+  if you find something, please file a bug in sourceforge:
+  http://sourceforge.net/projects/soapmime
 
 SUPPORT
 
@@ -61,11 +62,11 @@ bug reports and complaints.
 
 COPYRIGHT
 
-Copyright (C) 2002 majordojo.com. All rights reserved.
+Copyright (C) 2002-2003 majordojo.com. All rights reserved.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
 
 AUTHOR
 
-Byrne Reese (byrne@majordojo.com)
+Byrne Reese (soapmime at majordojo.com)
