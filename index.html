@@ -1,0 +1,122 @@
+<HTML>
+<HEAD>
+<TITLE>SOAP::MIME - Patch to SOAP::Lite to add attachment support. This module allows
+Perl clients to both compose messages with attachments, and to parse messages
+with attachments.</TITLE>
+<LINK REV="made" HREF="mailto:bhcompile@daffy.perf.redhat.com">
+</HEAD>
+
+<BODY>
+
+<A NAME="__index__"></A>
+<!-- INDEX BEGIN -->
+
+<UL>
+
+	<LI><A HREF="#name">NAME</A></LI>
+	<LI><A HREF="#synopsis">SYNOPSIS</A></LI>
+	<LI><A HREF="#todo">TODO</A></LI>
+	<LI><A HREF="#reference">REFERENCE</A></LI>
+	<LI><A HREF="#examples">EXAMPLES</A></LI>
+	<UL>
+
+		<LI><A HREF="#retrieving an attachment">Retrieving an Attachment</A></LI>
+		<LI><A HREF="#sending an attachment">Sending an Attachment</A></LI>
+	</UL>
+
+	<LI><A HREF="#see also">SEE ALSO</A></LI>
+</UL>
+<!-- INDEX END -->
+
+<HR>
+<P>
+<H1><A NAME="name">NAME</A></H1>
+<P>SOAP::MIME - Patch to SOAP::Lite to add attachment support. This module allows
+Perl clients to both compose messages with attachments, and to parse messages
+with attachments.</P>
+<P>Currently the module does not support server side parsing of attachments.</P>
+<P>
+<HR>
+<H1><A NAME="synopsis">SYNOPSIS</A></H1>
+<P>SOAP::Lite (http://www.soaplite.com/) is a SOAP Toolkit that
+allows users to create SOAP clients and services. As of
+July 15, 2002, MIME support in SOAP::Lite was minimal. It could
+parse MIME formatted messages, but the data contained in those
+attachments was ``lost.'' This Perl module, patches SOAP::Lite so
+that those MIME attachments are stored and placed into
+a SOAP::SOM object.</P>
+<P>
+<HR>
+<H1><A NAME="todo">TODO</A></H1>
+<P>6/12/2002 - Need to add ability to compose and send attachments.
+            FIXED on 7/15/2002
+7/15/2002 - Ability to process attachments on the server side has not yet
+            been tested.</P>
+<P>
+<HR>
+<H1><A NAME="reference">REFERENCE</A></H1>
+<DL>
+<DT><STRONG><A NAME="item_attachments"><STRONG>attachments()</STRONG></A></STRONG><BR>
+<DD>
+Used to retrieve attachments returned in a response. The
+subroutine <A HREF="#item_attachments"><CODE>attachments()</CODE></A> returns a hash containing the attachments
+parsed out of a message. The keys to the returned hash is the
+content-id of the associated attachment. The value of the hash is
+an array containing the content-type, the ???, and the content of
+the attachment itself:
+<P>@(&lt;content-type&gt;,%HASH,&lt;content&gt;)</P>
+<P></P>
+<DT><STRONG><A NAME="item_parts"><STRONG>parts(ARRAY)</STRONG></A></STRONG><BR>
+<DD>
+Used to specify an array of MIME::Entities. These entities will be
+attached to the SOAP message.
+<P></P></DL>
+<P>
+<HR>
+<H1><A NAME="examples">EXAMPLES</A></H1>
+<P>
+<H2><A NAME="retrieving an attachment">Retrieving an Attachment</A></H2>
+<PRE>
+  use SOAP::Lite;
+  use SOAP::MIME;</PRE>
+<PRE>
+  my $soap = SOAP::Lite
+    -&gt;readable(1)
+      -&gt;uri($NS)
+        -&gt;proxy($HOST);
+  my $som = $soap-&gt;foo();</PRE>
+<PRE>
+  foreach my $cid (keys %{$som-&gt;attachments}) {
+    print &quot;Attachment content-id: &quot; . $cid . &quot;\n&quot;;
+    foreach my $foo (@{$som-&gt;attachments-&gt;{$cid}}) {
+      print &quot;  Array elem: $foo\n&quot;;
+    }
+  }</PRE>
+<P>
+<H2><A NAME="sending an attachment">Sending an Attachment</A></H2>
+<PRE>
+  use SOAP::Lite;
+  use SOAP::MIME;
+  use MIME::Entity;</PRE>
+<PRE>
+  my $ent = build MIME::Entity
+    Type        =&gt; &quot;image/gif&quot;,
+    Encoding    =&gt; &quot;base64&quot;,
+    Path        =&gt; &quot;somefile.gif&quot;,
+    Filename    =&gt; &quot;saveme.gif&quot;,
+    Disposition =&gt; &quot;attachment&quot;;</PRE>
+<PRE>
+  my $som = SOAP::Lite
+    -&gt;readable(1)
+    -&gt;uri($SOME_NAMESPACE)
+    -&gt;parts([ $ent ])
+    -&gt;proxy($SOME_HOST)
+    -&gt;some_method(SOAP::Data-&gt;name(&quot;foo&quot; =&gt; &quot;bar&quot;));</PRE>
+<P>
+<HR>
+<H1><A NAME="see also">SEE ALSO</A></H1>
+<P><A HREF="/SOAP/Lite.html">the SOAP::Lite manpage</A>, <A HREF="/MIME/Entity.html">the MIME::Entity manpage</A></P>
+
+</BODY>
+
+</HTML>

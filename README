@@ -1,5 +1,7 @@
 OVERVIEW
 
+This Version: 0.55-2
+
 SOAP::Lite (http://www.soaplite.com/) is a SOAP Toolkit
 that allows users to create SOAP clients and services. As
 of June 12, 2002, MIME support in SOAP::Lite was minimal.
@@ -47,9 +49,10 @@ documentation from the module files directly.
 
 LIMITATIONS
 
-- Currently SOAP::MIME only provides a mechanism for accessing attachments
-  received and parsed by SOAP::Lite. It does not yet support the ability
-  to compose and to send MIME attachments.
+- Currently SOAP::MIME only provides a mechanism for composing and 
+  accessing attachments on the client side over HTTP. It does not expose
+  the ability to necessarily to process attachments on the server side
+  very easily. Although, I assume it is possible.
 
 SUPPORT
 
