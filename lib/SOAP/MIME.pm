@@ -123,11 +123,12 @@ BEGIN {
 				 'Type' => "multipart/related"
 				);
 
+      my @args = @_;
       $top->attach(
 		   'Type'             => 'text/xml',
 		   'Content-Location' => '/main_envelope',
 		   'Content-ID'       => '<main_envelope>',
-		   'Data'             => $serializer->envelope(method => shift, @_),
+		   'Data'             => $serializer->envelope(method => shift(@args), @args),
 		  );
 
       foreach $a (@{$self->parts}) {
