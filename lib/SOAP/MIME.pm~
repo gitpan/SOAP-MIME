@@ -53,7 +53,7 @@ BEGIN {
     my $som = SOAP::SOM->new($parsed);
 
     if ($self->mimeparser->{'_parts'}) {
-#      print "*********************ATTACHMENTS FOUND**************************\n";
+      print "*********************ATTACHMENTS FOUND**************************\n";
       $som->parts($self->mimeparser->{'_parts'});
     }
 
